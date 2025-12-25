@@ -14,7 +14,7 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { TrendingUp, AlertTriangle, PackageCheck, DollarSign, Download, Upload, Database, ShieldCheck } from 'lucide-react';
+import { TrendingUp, AlertTriangle, PackageCheck, DollarSign, Download, Upload, Database, ShieldCheck, Share2 } from 'lucide-react';
 
 interface DashboardProps {
   items: Item[];
@@ -46,8 +46,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
     return Object.keys(data).map(key => ({ name: key, value: data[key] }));
   }, [items]);
 
-  const lowStockItems = items.filter(i => i.quantity <= i.safetyStock);
-
   const activityData = React.useMemo(() => {
       const data = [
           { name: '입고', value: logs.filter(l => l.type === TransactionType.IN).length },
@@ -58,8 +56,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(val);
 
-  // 데이터 내보내기 (JSON 다운로드)
-  const handleExport = () => {
+  // 데이터 생성 공통 로직
+  const getBackupBlob = () => {
     const backupData = {
       items,
       logs,
@@ -68,8 +66,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
       version: '4.0',
       timestamp: new Date().toISOString()
     };
-    
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    return new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+  };
+
+  // 1. 데이터 내보내기 (다운로드)
+  const handleExport = () => {
+    const blob = getBackupBlob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -78,7 +80,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
     URL.revokeObjectURL(url);
   };
 
-  // 데이터 가져오기 (파일 읽기)
+  // 2. 데이터 공유하기 (모바일 공유 창)
+  const handleShare = async () => {
+    const blob = getBackupBlob();
+    const fileName = `inventory_share_${new Date().toISOString().split('T')[0]}.json`;
+    const file = new File([blob], fileName, { type: 'application/json' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'SmartInven 재고 데이터 공유',
+          text: '현재 재고 현황 데이터 파일입니다. 앱에서 불러오기를 통해 사용하세요.'
+        });
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    } else {
+      alert('이 브라우저는 파일 공유 기능을 지원하지 않습니다. [내보내기] 후 파일을 수동으로 전달해주세요.');
+    }
+  };
+
+  // 3. 데이터 가져오기
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -91,9 +114,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
       }
     };
     reader.readAsText(file);
-    // 동일 파일 재선택 가능하게 리셋
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const lowStockItems = items.filter(i => i.quantity <= i.safetyStock);
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -101,15 +125,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
         <div>
           <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">대시보드</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">실시간 주요 지표 요약</p>
-        </div>
-        <div className="flex gap-2 print:hidden">
-          <button 
-            onClick={handleExport}
-            className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5 mr-2" />
-            백업하기
-          </button>
         </div>
       </header>
 
@@ -197,28 +212,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-blue-400">
                 <Database className="w-5 h-5" />
-                <span className="text-xs font-black uppercase tracking-widest">Data Safe Guard</span>
+                <span className="text-xs font-black uppercase tracking-widest">Data & Collaboration</span>
               </div>
-              <h2 className="text-2xl font-black tracking-tight">데이터 영구 보관 및 관리</h2>
+              <h2 className="text-2xl font-black tracking-tight">협업 및 데이터 관리</h2>
               <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-lg">
-                현재 데이터는 브라우저에 자동 저장되지만, 더 안전한 보관을 위해 파일로 백업할 수 있습니다. 
-                중요한 작업 전후에는 반드시 백업 파일을 다운로드해 두세요.
+                동료와 데이터를 공유하려면 [데이터 공유하기]를 눌러 파일을 전달하세요. 
+                상대방은 전달받은 파일을 [불러오기]하면 동일한 내역을 확인할 수 있습니다.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:w-auto">
+              <button 
+                onClick={handleShare}
+                className="flex items-center justify-center px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-indigo-600/20"
+              >
+                <Share2 className="w-5 h-5 mr-2" />
+                데이터 공유하기
+              </button>
               <button 
                 onClick={handleExport}
-                className="flex items-center justify-center px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-blue-600/20"
+                className="flex items-center justify-center px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all active:scale-95 border border-slate-700"
               >
                 <Download className="w-5 h-5 mr-2" />
-                현재 데이터 내보내기
+                파일로 내보내기
               </button>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center justify-center px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all active:scale-95 border border-slate-700"
+                className="col-span-1 sm:col-span-2 flex items-center justify-center px-6 py-4 bg-white text-slate-900 rounded-2xl font-black transition-all active:scale-95 border border-slate-200"
               >
-                <Upload className="w-5 h-5 mr-2" />
-                백업 파일 불러오기
+                <Upload className="w-5 h-5 mr-2 text-blue-600" />
+                공유받은 백업 파일 불러오기
               </button>
               <input 
                 type="file" 
@@ -231,9 +253,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ items, logs, partners, ass
           </div>
           
           <div className="mt-8 pt-8 border-t border-slate-800 flex items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            <span className="flex items-center text-emerald-400"><ShieldCheck className="w-3 h-3 mr-1" /> 실시간 자동 저장 활성</span>
+            <span className="flex items-center text-emerald-400"><ShieldCheck className="w-3 h-3 mr-1" /> 로컬 스토리지 보관 중</span>
             <span className="w-1.5 h-1.5 bg-slate-700 rounded-full"></span>
-            <span>최종 백업 권장: 주 1회</span>
+            <span>공유 팁: 카카오톡 전송 가능</span>
           </div>
         </div>
       </div>

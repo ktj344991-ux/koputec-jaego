@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { 
   LayoutDashboard, 
   Package, 
   History, 
-  Sparkles, 
   Menu,
   X,
   Users
@@ -56,12 +56,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-slate-700/50">
-            <div className="flex items-center space-x-3 mb-2">
-              <Sparkles className="w-5 h-5 text-yellow-400" />
-              <span className="font-bold text-sm">AI 어시스턴트</span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">Gemini가 실시간 재고를 분석하고 관리 전략을 제안합니다.</p>
+          <div className="p-4 text-center">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">v4.0.0 Stable</p>
           </div>
         </div>
       </aside>

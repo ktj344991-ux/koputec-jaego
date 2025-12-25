@@ -8,11 +8,9 @@ import {
   Edit2, 
   Trash2, 
   X, 
-  Sparkles, 
   QrCode,
   Printer,
   Hash,
-  ChevronRight,
   ShieldCheck, 
   AlertCircle,
   Camera,
@@ -22,7 +20,6 @@ import {
   Building2,
   Check
 } from 'lucide-react';
-import { analyzeInventory } from '../services/geminiService';
 
 interface InventoryProps {
   items: Item[];
@@ -70,8 +67,6 @@ export const Inventory: React.FC<InventoryProps> = ({
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Partial<Item>>({});
-  const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
-  const [aiReport, setAiReport] = useState<string | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [assetTab, setAssetTab] = useState<'AVAILABLE' | 'SHIPPED'>('AVAILABLE');
   const [newSignalNumber, setNewSignalNumber] = useState('');
@@ -241,32 +236,12 @@ export const Inventory: React.FC<InventoryProps> = ({
           <p className="text-sm text-slate-500 font-medium">실시간 자산 및 시그널 넘버 추적</p>
         </div>
         <div className="flex gap-2 w-full lg:w-auto">
-            <button onClick={async () => {
-                setIsAIAnalyzing(true);
-                const r = await analyzeInventory(items, logs);
-                setAiReport(r);
-                setIsAIAnalyzing(false);
-            }} className="flex-1 lg:flex-none flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
-                <span className="flex items-center"><Sparkles className="w-4 h-4 mr-2" /> AI 분석</span>
-            </button>
             <button onClick={() => { setEditingItem({category: '탱크', quantity: 0, safetyStock: 5, price: 0}); setSelectedItem(null); setIsEditModalOpen(true); }}
-                className="flex-1 lg:flex-none flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
+                className="flex-1 lg:flex-none flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
                 <span className="flex items-center"><Plus className="w-4 h-4 mr-2" /> 품목 추가</span>
             </button>
         </div>
       </header>
-
-      {/* AI Report View */}
-      {(isAIAnalyzing || aiReport) && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-3xl p-6 relative animate-fade-in-up mx-2 lg:mx-0">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="flex items-center text-lg font-black text-indigo-900"><Sparkles className="w-5 h-5 mr-2" /> Gemini 분석 보고서</h3>
-            {!isAIAnalyzing && <button onClick={() => setAiReport(null)} className="text-indigo-400 hover:text-indigo-600"><X className="w-5 h-5" /></button>}
-          </div>
-          {isAIAnalyzing ? <div className="py-8 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div> : 
-          <pre className="whitespace-pre-wrap font-sans text-sm text-indigo-800 leading-relaxed">{aiReport}</pre>}
-        </div>
-      )}
 
       {/* Filter & Search */}
       <div className="space-y-3 px-2 lg:px-0">
@@ -429,7 +404,7 @@ export const Inventory: React.FC<InventoryProps> = ({
         </div>
       )}
 
-      {/* Transaction Modal (QR 스캔 후 결과 확인 및 거래처 검색 기능 포함) */}
+      {/* Transaction Modal */}
       {isTxModalOpen && selectedItem && (
         <div className="fixed inset-0 z-[110] flex items-end lg:items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up lg:animate-fade-in flex flex-col max-h-[90vh]">
